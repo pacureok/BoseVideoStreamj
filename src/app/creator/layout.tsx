@@ -1,5 +1,5 @@
 import { getServerSession } from "next-auth";
-import { authOptions } from "../../api/auth/[...nextauth]/route"; // Ruta relativa corregida (SIN ESPACIOS)
+import { authOptions } from "../../api/auth/[...nextauth]/route"; // RUTA RELATIVA: ESCRIBIR MANUALMENTE: "../../api/auth/[...nextauth]/route"
 import { redirect } from "next/navigation";
 import React from "react";
 
