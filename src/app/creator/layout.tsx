@@ -1,18 +1,33 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "../../api/auth/[...nextauth]/route"; // RUTA RELATIVA: ESCRIBIR MANUALMENTE: "../../api/auth/[...nextauth]/route"
-import { redirect } from "next/navigation";
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { useRouter } from "next/navigation"; // Si usas Next.js en modo SPA, o usa useHistory de react-router si es puro React
 
-export default async function CreatorLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  const session = await getServerSession(authOptions);
+export default function CreatorLayout({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
+  const [loading, setLoading] = useState(true);
 
-  if (!session || !session.user?.isCreator) {
-    redirect("/login");
-  }
+  useEffect(() => {
+    async function checkSession() {
+      try {
+        const res = await fetch("/.netlify/functions/stream-info");
+        if (!res.ok) {
+          router.push("/login");
+          return;
+        }
+        const data = await res.json();
+        if (!data.is_creator) {
+          router.push("/login");
+          return;
+        }
+      } catch {
+        router.push("/login");
+      } finally {
+        setLoading(false);
+      }
+    }
+    checkSession();
+  }, [router]);
+
+  if (loading) return <div className="p-8 text-center">Cargando...</div>;
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-900 text-gray-100">
