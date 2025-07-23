@@ -1,8 +1,8 @@
 // src/app/api/live/route.ts
 import { NextResponse } from 'next/server';
 import { getServerSession } from "next-auth";
-import { authOptions } from "../auth/[...nextauth]/route"; // ¡Ruta relativa!
-import { query } from '@/src/utils/dbService';
+import { authOptions } from "../auth/[...nextauth]/route"; // Ruta relativa corregida
+import { query } from '@/src/utils/dbService'; // Mantiene alias, ya que está funcionando
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
