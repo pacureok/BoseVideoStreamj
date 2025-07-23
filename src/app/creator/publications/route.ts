@@ -1,78 +1,136 @@
-tions/route.ts
-import { NextResponse } from 'next/server';
-import { getServerSession } from "next-auth";
-import { authOptions } from "../../../api/auth/[...nextauth]/route"; // RUTA RELATIVA: ESCRIBIR MANUALMENTE: "../../../api/auth/[...nextauth]/route"
-import { query } from '@/src/utils/dbService'; // Alias: '@/src/utils/dbService'
+import { query } from '../../src/utils/dbService';
 
-export async function GET(req: Request) {
-  const session = await getServerSession(authOptions);
-  if (!session || !session.user?.isCreator) {
-    return NextResponse.json({ message: 'No autorizado.' }, { status: 403 });
-  }
-
-  try {
-    const userId = session.user?.id;
-    if (!userId) {
-      return NextResponse.json({ message: 'ID de usuario no encontrado en la sesión.' }, { status: 400 });
-    }
-
-    const publications = await query("SELECT * FROM creator_posts WHERE creator_id = $1 ORDER BY created_at DESC", [userId]);
-    return NextResponse.json(publications.rows);
-  } catch (error) {
-    console.error('Error al obtener publicaciones del creador:', error);
-    return NextResponse.json({ message: 'Error interno del servidor.' }, { status: 500 });
-  }
+// Implementa esto según tu sistema de autenticación real (JWT, cookies, etc)
+async function getSessionFromRequest(event: any) {
+  // Ejemplo: token JWT en cookies
+  // const token = event.headers.cookie?.match(/token=([^;]+)/)?.[1];
+  // if (!token) return null;
+  // ... valida el token y extrae los datos de sesión ...
+  // return { user: { id: '...', isCreator: true/false } };
+  return null; // IMPLEMENTA ESTO
 }
 
-export async function POST(req: Request) {
-  const session = await getServerSession(authOptions);
-  if (!session || !session.user?.isCreator) {
-    return NextResponse.json({ message: 'No autorizado.' }, { status: 403 });
-  }
+export async function handler(event: any) {
+  const method = event.httpMethod;
 
-  try {
-    const { title, description, videoUrl } = await req.json();
-    const userId = session.user?.id;
-
-    if (!title || !videoUrl || !userId) {
-      return NextResponse.json({ message: 'Título, URL de video y ID de creador son requeridos.' }, { status: 400 });
+  // GET - obtener publicaciones del creador
+  if (method === "GET") {
+    const session = await getSessionFromRequest(event);
+    if (!session || !session.user?.isCreator) {
+      return {
+        statusCode: 403,
+        body: JSON.stringify({ message: 'No autorizado.' })
+      };
     }
 
-    await query(
-      "INSERT INTO creator_posts (creator_id, title, description, video_url) VALUES ($1, $2, $3, $4)",
-      [userId, title, description, videoUrl]
-    );
+    try {
+      const userId = session.user?.id;
+      if (!userId) {
+        return {
+          statusCode: 400,
+          body: JSON.stringify({ message: 'ID de usuario no encontrado en la sesión.' })
+        };
+      }
 
-    return NextResponse.json({ message: 'Publicación creada exitosamente.' }, { status: 201 });
-  } catch (error) {
-    console.error('Error al crear publicación:', error);
-    return NextResponse.json({ message: 'Error interno del servidor.' }, { status: 500 });
+      const publications = await query("SELECT * FROM creator_posts WHERE creator_id = $1 ORDER BY created_at DESC", [userId]);
+      return {
+        statusCode: 200,
+        body: JSON.stringify(publications.rows)
+      };
+    } catch (error) {
+      console.error('Error al obtener publicaciones del creador:', error);
+      return {
+        statusCode: 500,
+        body: JSON.stringify({ message: 'Error interno del servidor.' })
+      };
+    }
   }
-}
 
-export async function DELETE(req: Request) {
-  const session = await getServerSession(authOptions);
-  if (!session || !session.user?.isCreator) {
-    return NextResponse.json({ message: 'No autorizado.' }, { status: 403 });
-  }
-
-  try {
-    const { id } = await req.json();
-    const userId = session.user?.id;
-
-    if (!id || !userId) {
-      return NextResponse.json({ message: 'ID de publicación y ID de creador son requeridos.' }, { status: 400 });
+  // POST - crear publicación
+  if (method === "POST") {
+    const session = await getSessionFromRequest(event);
+    if (!session || !session.user?.isCreator) {
+      return {
+        statusCode: 403,
+        body: JSON.stringify({ message: 'No autorizado.' })
+      };
     }
 
-    const res = await query("DELETE FROM creator_posts WHERE id = $1 AND creator_id = $2", [id, userId]);
+    try {
+      const { title, description, videoUrl } = JSON.parse(event.body || '{}');
+      const userId = session.user?.id;
 
-    if (res.rowCount === 0) {
-      return NextResponse.json({ message: 'Publicación no encontrada o no tienes permiso para eliminarla.' }, { status: 404 });
+      if (!title || !videoUrl || !userId) {
+        return {
+          statusCode: 400,
+          body: JSON.stringify({ message: 'Título, URL de video y ID de creador son requeridos.' })
+        };
+      }
+
+      await query(
+        "INSERT INTO creator_posts (creator_id, title, description, video_url) VALUES ($1, $2, $3, $4)",
+        [userId, title, description, videoUrl]
+      );
+
+      return {
+        statusCode: 201,
+        body: JSON.stringify({ message: 'Publicación creada exitosamente.' })
+      };
+    } catch (error) {
+      console.error('Error al crear publicación:', error);
+      return {
+        statusCode: 500,
+        body: JSON.stringify({ message: 'Error interno del servidor.' })
+      };
+    }
+  }
+
+  // DELETE - eliminar publicación
+  if (method === "DELETE") {
+    const session = await getSessionFromRequest(event);
+    if (!session || !session.user?.isCreator) {
+      return {
+        statusCode: 403,
+        body: JSON.stringify({ message: 'No autorizado.' })
+      };
     }
 
-    return NextResponse.json({ message: 'Publicación eliminada exitosamente.' });
-  } catch (error) {
-    console.error('Error al eliminar publicación:', error);
-    return NextResponse.json({ message: 'Error interno del servidor.' }, { status: 500 });
+    try {
+      const { id } = JSON.parse(event.body || '{}');
+      const userId = session.user?.id;
+
+      if (!id || !userId) {
+        return {
+          statusCode: 400,
+          body: JSON.stringify({ message: 'ID de publicación y ID de creador son requeridos.' })
+        };
+      }
+
+      const res = await query("DELETE FROM creator_posts WHERE id = $1 AND creator_id = $2", [id, userId]);
+
+      if (res.rowCount === 0) {
+        return {
+          statusCode: 404,
+          body: JSON.stringify({ message: 'Publicación no encontrada o no tienes permiso para eliminarla.' })
+        };
+      }
+
+      return {
+        statusCode: 200,
+        body: JSON.stringify({ message: 'Publicación eliminada exitosamente.' })
+      };
+    } catch (error) {
+      console.error('Error al eliminar publicación:', error);
+      return {
+        statusCode: 500,
+        body: JSON.stringify({ message: 'Error interno del servidor.' })
+      };
+    }
   }
+
+  // Método no soportado
+  return {
+    statusCode: 405,
+    body: JSON.stringify({ message: 'Método no soportado.' })
+  };
 }
