@@ -1,136 +1,51 @@
-import { query } from '../../src/utils/dbService';
+'use client'; // ¡ESTO DEBE SER LA PRIMERA LÍNEA EXACTA!
 
-// Implementa esto según tu sistema de autenticación real (JWT, cookies, etc)
-async function getSessionFromRequest(event: any) {
-  // Ejemplo: token JWT en cookies
-  // const token = event.headers.cookie?.match(/token=([^;]+)/)?.[1];
-  // if (!token) return null;
-  // ... valida el token y extrae los datos de sesión ...
-  // return { user: { id: '...', isCreator: true/false } };
-  return null; // IMPLEMENTA ESTO
-}
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import React, { useEffect } from "react";
 
-export async function handler(event: any) {
-  const method = event.httpMethod;
+export default function CreatorLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const { data: session, status } = useSession();
+  const router = useRouter();
 
-  // GET - obtener publicaciones del creador
-  if (method === "GET") {
-    const session = await getSessionFromRequest(event);
+  useEffect(() => {
+    if (status === "loading") return;
+
     if (!session || !session.user?.isCreator) {
-      return {
-        statusCode: 403,
-        body: JSON.stringify({ message: 'No autorizado.' })
-      };
+      router.push("/login");
     }
+  }, [session, status, router]);
 
-    try {
-      const userId = session.user?.id;
-      if (!userId) {
-        return {
-          statusCode: 400,
-          body: JSON.stringify({ message: 'ID de usuario no encontrado en la sesión.' })
-        };
-      }
-
-      const publications = await query("SELECT * FROM creator_posts WHERE creator_id = $1 ORDER BY created_at DESC", [userId]);
-      return {
-        statusCode: 200,
-        body: JSON.stringify(publications.rows)
-      };
-    } catch (error) {
-      console.error('Error al obtener publicaciones del creador:', error);
-      return {
-        statusCode: 500,
-        body: JSON.stringify({ message: 'Error interno del servidor.' })
-      };
-    }
+  if (status === "loading" || !session || !session.user?.isCreator) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-900 text-gray-100">
+        Cargando...
+      </div>
+    );
   }
 
-  // POST - crear publicación
-  if (method === "POST") {
-    const session = await getSessionFromRequest(event);
-    if (!session || !session.user?.isCreator) {
-      return {
-        statusCode: 403,
-        body: JSON.stringify({ message: 'No autorizado.' })
-      };
-    }
-
-    try {
-      const { title, description, videoUrl } = JSON.parse(event.body || '{}');
-      const userId = session.user?.id;
-
-      if (!title || !videoUrl || !userId) {
-        return {
-          statusCode: 400,
-          body: JSON.stringify({ message: 'Título, URL de video y ID de creador son requeridos.' })
-        };
-      }
-
-      await query(
-        "INSERT INTO creator_posts (creator_id, title, description, video_url) VALUES ($1, $2, $3, $4)",
-        [userId, title, description, videoUrl]
-      );
-
-      return {
-        statusCode: 201,
-        body: JSON.stringify({ message: 'Publicación creada exitosamente.' })
-      };
-    } catch (error) {
-      console.error('Error al crear publicación:', error);
-      return {
-        statusCode: 500,
-        body: JSON.stringify({ message: 'Error interno del servidor.' })
-      };
-    }
-  }
-
-  // DELETE - eliminar publicación
-  if (method === "DELETE") {
-    const session = await getSessionFromRequest(event);
-    if (!session || !session.user?.isCreator) {
-      return {
-        statusCode: 403,
-        body: JSON.stringify({ message: 'No autorizado.' })
-      };
-    }
-
-    try {
-      const { id } = JSON.parse(event.body || '{}');
-      const userId = session.user?.id;
-
-      if (!id || !userId) {
-        return {
-          statusCode: 400,
-          body: JSON.stringify({ message: 'ID de publicación y ID de creador son requeridos.' })
-        };
-      }
-
-      const res = await query("DELETE FROM creator_posts WHERE id = $1 AND creator_id = $2", [id, userId]);
-
-      if (res.rowCount === 0) {
-        return {
-          statusCode: 404,
-          body: JSON.stringify({ message: 'Publicación no encontrada o no tienes permiso para eliminarla.' })
-        };
-      }
-
-      return {
-        statusCode: 200,
-        body: JSON.stringify({ message: 'Publicación eliminada exitosamente.' })
-      };
-    } catch (error) {
-      console.error('Error al eliminar publicación:', error);
-      return {
-        statusCode: 500,
-        body: JSON.stringify({ message: 'Error interno del servidor.' })
-      };
-    }
-  }
-
-  // Método no soportado
-  return {
-    statusCode: 405,
-    body: JSON.stringify({ message: 'Método no soportado.' })
-  };
+  return (
+    <div className="flex flex-col min-h-screen bg-gray-900 text-gray-100">
+      <header className="bg-gray-800 p-4 shadow-md">
+        <h1 className="text-3xl font-bold text-green-400">Panel del Creador</h1>
+        <nav className="mt-2">
+          <ul className="flex gap-4">
+            <li><a href="/creator/dashboard" className="text-green-300 hover:underline">Dashboard</a></li>
+            <li><a href="/creator/live-studio" className="text-green-300 hover:underline">Estudio en Vivo</a></li>
+            <li><a href="/creator/publications" className="text-green-300 hover:underline">Mis Publicaciones</a></li>
+          </ul>
+        </nav>
+      </header>
+      <main className="flex-grow p-4">
+        {children}
+      </main>
+      <footer className="bg-gray-800 p-4 text-center text-gray-400 text-sm mt-auto">
+        &copy; {new Date().getFullYear()} BoseVideoStream - Panel del Creador.
+      </footer>
+    </div>
+  );
 }
