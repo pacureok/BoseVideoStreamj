@@ -1,7 +1,7 @@
 // src/app/api/chat/send/route.ts
 import { NextResponse } from 'next/server';
 import { getServerSession } from "next-auth";
-import { authOptions } from "../auth/[...nextauth]/route"; // ¡Ruta relativa!
+import { authOptions } from "../auth/[...nextauth]/route"; // Ruta relativa corregida
 import Pusher from 'pusher';
 
 const pusher = new Pusher({
