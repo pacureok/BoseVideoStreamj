@@ -1,8 +1,8 @@
 // src/app/api/live/route.ts
 import { NextResponse } from 'next/server';
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/src/app/api/auth/[...nextauth]/route"; // CORREGIDO AQUÍ: Añade 'src/'
-import { query } from '@/src/lib/db'; // CORREGIDO AQUÍ: Añade 'src/'
+import { authOptions } from "@/src/app/api/auth/[...nextauth]/route"; // Ruta a authOptions (no ha cambiado)
+import { query } from '@/src/utils/dbService'; // ¡IMPORTACIÓN ACTUALIZADA! Ahora apunta a src/utils/dbService.ts
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
@@ -13,7 +13,6 @@ export async function POST(req: Request) {
   try {
     const { status, youtubeUrl } = await req.json();
 
-    // Actualiza el estado 'is_live' del creador y su URL de YouTube si es necesario
     await query(
       "UPDATE users SET is_live = $1, youtube_url = COALESCE($2, youtube_url) WHERE id = $3",
       [status, youtubeUrl, session.user.id]
