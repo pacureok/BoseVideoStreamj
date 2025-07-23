@@ -1,29 +1,34 @@
+// src/app/api/register/route.ts
 import { NextResponse } from 'next/server';
-import { hashPassword } from '@/lib/auth'; // Importamos la función de hash
-import { query } from '@/lib/db';
+import { hashPassword } from '@/src/utils/authService'; // ¡IMPORTACIÓN ACTUALIZADA!
+import { query } from '@/src/utils/dbService';     // ¡IMPORTACIÓN ACTUALIZADA!
 
 export async function POST(req: Request) {
   try {
-    const { username, password } = await req.json(); // Solo username y password
+    const { username, email, password } = await req.json();
 
-    if (!username || !password) {
-      return NextResponse.json({ message: 'Nombre de usuario y contraseña son requeridos.' }, { status: 400 });
+    if (!username || !email || !password) {
+      return NextResponse.json({ message: 'Todos los campos son requeridos.' }, { status: 400 });
     }
 
+    // Verificar si el usuario ya existe
+    const userExists = await query("SELECT id FROM users WHERE username = $1 OR email = $2", [username, email]);
+    if (userExists.rows.length > 0) {
+      return NextResponse.json({ message: 'El usuario o email ya está registrado.' }, { status: 409 });
+    }
+
+    // Hashear la contraseña antes de guardarla
     const hashedPassword = await hashPassword(password);
 
+    // Insertar el nuevo usuario en la base de datos
     await query(
-      "INSERT INTO users (username, password) VALUES ($1, $2)", // Solo username y password
-      [username, hashedPassword]
+      "INSERT INTO users (username, email, password, is_creator) VALUES ($1, $2, $3, FALSE)",
+      [username, email, hashedPassword]
     );
 
-    return NextResponse.json({ message: 'Usuario registrado exitosamente.' }, { status: 201 });
-
-  } catch (error: any) {
-    if (error.code === '23505') { // Código de error de PostgreSQL para clave única duplicada (username)
-      return NextResponse.json({ message: 'El nombre de usuario ya está registrado.' }, { status: 409 });
-    }
-    console.error('Error al registrar usuario:', error);
+    return NextResponse.json({ message: 'Registro exitoso.' }, { status: 201 });
+  } catch (error) {
+    console.error('Error durante el registro:', error);
     return NextResponse.json({ message: 'Error interno del servidor.' }, { status: 500 });
   }
 }
