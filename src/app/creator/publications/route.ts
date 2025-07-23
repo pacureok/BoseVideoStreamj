@@ -1,8 +1,8 @@
 // src/app/creator/publications/route.ts
 import { NextResponse } from 'next/server';
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/src/app/api/auth/[...nextauth]/route"; // ¡IMPORTACIÓN ACTUALIZADA!
-import { query } from '@/src/utils/dbService'; // ¡IMPORTACIÓN ACTUALIZADA!
+import { authOptions } from "../../../api/auth/[...nextauth]/route"; // ¡Ruta relativa!
+import { query } from '@/src/utils/dbService';
 
 export async function GET(req: Request) {
   const session = await getServerSession(authOptions);
@@ -16,7 +16,6 @@ export async function GET(req: Request) {
       return NextResponse.json({ message: 'ID de usuario no encontrado en la sesión.' }, { status: 400 });
     }
 
-    // Obtener publicaciones del creador
     const publications = await query("SELECT * FROM creator_posts WHERE creator_id = $1 ORDER BY created_at DESC", [userId]);
     return NextResponse.json(publications.rows);
   } catch (error) {
@@ -58,14 +57,13 @@ export async function DELETE(req: Request) {
   }
 
   try {
-    const { id } = await req.json(); // ID de la publicación a eliminar
+    const { id } = await req.json();
     const userId = session.user?.id;
 
     if (!id || !userId) {
       return NextResponse.json({ message: 'ID de publicación y ID de creador son requeridos.' }, { status: 400 });
     }
 
-    // Asegurarse de que el creador solo pueda eliminar sus propias publicaciones
     const res = await query("DELETE FROM creator_posts WHERE id = $1 AND creator_id = $2", [id, userId]);
 
     if (res.rowCount === 0) {
