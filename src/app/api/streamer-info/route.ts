@@ -1,26 +1,75 @@
 // src/app/api/streamer-info/route.ts
 import { NextResponse } from 'next/server';
-import { query } from '@/src/lib/db'; // CORREGIDO AQUÍ: Añade 'src/'
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/src/app/api/auth/[...nextauth]/route"; // Ruta a authOptions (no ha cambiado)
+import { query } from '@/src/utils/dbService'; // ¡IMPORTACIÓN ACTUALIZADA!
 
 export async function GET(req: Request) {
-  const url = new URL(req.url);
-  const username = url.searchParams.get('username');
-
-  if (!username) {
-    return NextResponse.json({ message: 'Nombre de usuario requerido.' }, { status: 400 });
+  const session = await getServerSession(authOptions);
+  if (!session) {
+    return NextResponse.json({ message: 'No autenticado.' }, { status: 401 });
   }
 
   try {
-    const userRes = await query("SELECT id, username, youtube_url, is_live FROM users WHERE username = $1", [username]);
-    const streamer = userRes.rows[0];
-
-    if (!streamer) {
-      return NextResponse.json({ message: 'Streamer no encontrado.' }, { status: 404 });
+    const userId = session.user?.id;
+    if (!userId) {
+      return NextResponse.json({ message: 'ID de usuario no encontrado en la sesión.' }, { status: 400 });
     }
 
-    return NextResponse.json({ streamer });
+    const userRes = await query("SELECT username, email, is_creator, youtube_url, is_live FROM users WHERE id = $1", [userId]);
+    const user = userRes.rows[0];
+
+    if (!user) {
+      return NextResponse.json({ message: 'Usuario no encontrado.' }, { status: 404 });
+    }
+
+    return NextResponse.json(user);
   } catch (error) {
-    console.error('Error al obtener info del streamer:', error);
+    console.error('Error al obtener información del streamer:', error);
+    return NextResponse.json({ message: 'Error interno del servidor.' }, { status: 500 });
+  }
+}
+
+export async function PUT(req: Request) {
+  const session = await getServerSession(authOptions);
+  if (!session || !session.user?.isCreator) {
+    return NextResponse.json({ message: 'No autorizado.' }, { status: 403 });
+  }
+
+  try {
+    const { youtubeUrl, isLive } = await req.json();
+    const userId = session.user?.id;
+
+    if (!userId) {
+      return NextResponse.json({ message: 'ID de usuario no encontrado en la sesión.' }, { status: 400 });
+    }
+
+    // Actualiza solo los campos proporcionados
+    const updates: string[] = [];
+    const params: any[] = [];
+    let paramIndex = 1;
+
+    if (youtubeUrl !== undefined) {
+      updates.push(`youtube_url = $${paramIndex++}`);
+      params.push(youtubeUrl);
+    }
+    if (isLive !== undefined) {
+      updates.push(`is_live = $${paramIndex++}`);
+      params.push(isLive);
+    }
+
+    if (updates.length === 0) {
+      return NextResponse.json({ message: 'No hay campos para actualizar.' }, { status: 400 });
+    }
+
+    params.push(userId); // El último parámetro es el ID del usuario
+
+    const updateQuery = `UPDATE users SET ${updates.join(', ')} WHERE id = $${paramIndex}`;
+    await query(updateQuery, params);
+
+    return NextResponse.json({ message: 'Información del streamer actualizada.' });
+  } catch (error) {
+    console.error('Error al actualizar información del streamer:', error);
     return NextResponse.json({ message: 'Error interno del servidor.' }, { status: 500 });
   }
 }
