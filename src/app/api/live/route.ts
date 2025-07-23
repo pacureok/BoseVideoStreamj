@@ -1,8 +1,8 @@
 // src/app/api/live/route.ts
 import { NextResponse } from 'next/server';
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/src/app/api/auth/[...nextauth]/route"; // Ruta a authOptions (no ha cambiado)
-import { query } from '@/src/utils/dbService'; // ¡IMPORTACIÓN ACTUALIZADA! Ahora apunta a src/utils/dbService.ts
+import { authOptions } from "../auth/[...nextauth]/route"; // ¡Ruta relativa!
+import { query } from '@/src/utils/dbService';
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
@@ -25,7 +25,6 @@ export async function POST(req: Request) {
   }
 }
 
-// GET (opcional) para saber quién está en vivo
 export async function GET(req: Request) {
   try {
     const liveCreators = await query("SELECT id, username, youtube_url FROM users WHERE is_live = TRUE");
