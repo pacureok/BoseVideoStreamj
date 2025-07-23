@@ -1,8 +1,8 @@
 // src/app/api/streamer-info/route.ts
 import { NextResponse } from 'next/server';
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/src/app/api/auth/[...nextauth]/route"; // Ruta a authOptions (no ha cambiado)
-import { query } from '@/src/utils/dbService'; // ¡IMPORTACIÓN ACTUALIZADA!
+import { authOptions } from "../auth/[...nextauth]/route"; // ¡Ruta relativa!
+import { query } from '@/src/utils/dbService';
 
 export async function GET(req: Request) {
   const session = await getServerSession(authOptions);
@@ -44,7 +44,6 @@ export async function PUT(req: Request) {
       return NextResponse.json({ message: 'ID de usuario no encontrado en la sesión.' }, { status: 400 });
     }
 
-    // Actualiza solo los campos proporcionados
     const updates: string[] = [];
     const params: any[] = [];
     let paramIndex = 1;
@@ -62,7 +61,7 @@ export async function PUT(req: Request) {
       return NextResponse.json({ message: 'No hay campos para actualizar.' }, { status: 400 });
     }
 
-    params.push(userId); // El último parámetro es el ID del usuario
+    params.push(userId);
 
     const updateQuery = `UPDATE users SET ${updates.join(', ')} WHERE id = $${paramIndex}`;
     await query(updateQuery, params);
