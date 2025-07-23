@@ -1,8 +1,8 @@
-// src/app/creator/publications/route.ts
+tions/route.ts
 import { NextResponse } from 'next/server';
 import { getServerSession } from "next-auth";
-import { authOptions } from "../../../api/auth/[...nextauth]/route"; // Ruta relativa corregida (SIN ESPACIOS)
-import { query } from '@/src/utils/dbService'; // Mantiene alias, ya que está funcionando
+import { authOptions } from "../../../api/auth/[...nextauth]/route"; // RUTA RELATIVA: ESCRIBIR MANUALMENTE: "../../../api/auth/[...nextauth]/route"
+import { query } from '@/src/utils/dbService'; // Alias: '@/src/utils/dbService'
 
 export async function GET(req: Request) {
   const session = await getServerSession(authOptions);
