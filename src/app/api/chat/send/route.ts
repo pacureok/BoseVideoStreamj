@@ -1,10 +1,9 @@
 // src/app/api/chat/send/route.ts
 import { NextResponse } from 'next/server';
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/src/app/api/auth/[...nextauth]/route"; // Ruta a authOptions (no ha cambiado)
-import Pusher from 'pusher'; // Para el backend
+import { authOptions } from "../auth/[...nextauth]/route"; // ¡Ruta relativa!
+import Pusher from 'pusher';
 
-// Configurar Pusher en el backend
 const pusher = new Pusher({
   appId: process.env.PUSHER_APP_ID || '',
   key: process.env.NEXT_PUBLIC_PUSHER_KEY || '',
