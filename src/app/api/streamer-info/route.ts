@@ -1,8 +1,8 @@
 // src/app/api/streamer-info/route.ts
 import { NextResponse } from 'next/server';
 import { getServerSession } from "next-auth";
-import { authOptions } from "../auth/[...nextauth]/route"; // Ruta relativa corregida
-import { query } from '@/src/utils/dbService'; // ¡IMPORTACIÓN CORREGIDA!
+import { authOptions } from "../auth/[...nextauth]/route"; // Ruta relativa corregida (sin espacios)
+import { query } from '@/src/utils/dbService'; // ¡IMPORTACIÓN CORREGIDA A utils/dbService!
 
 export async function GET(req: Request) {
   const session = await getServerSession(authOptions);
